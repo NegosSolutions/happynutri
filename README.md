@@ -1,1 +1,1 @@
-happynutri.duckdns.org
+https://happynutri.negos.solutions
