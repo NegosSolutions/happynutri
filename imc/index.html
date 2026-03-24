@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriEval — Evaluación Nutricional</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE6;
+    --border: #E2DDD4;
+    --border2: #C8C2B6;
+    --text: #1C1A16;
+    --text2: #6B6560;
+    --text3: #9C978F;
+    --accent: #2D6A4F;
+    --accent-light: #D8EDDF;
+    --accent-dark: #1B4332;
+    --warn: #B5451B;
+    --warn-light: #FDEBD8;
+    --info: #1D4E89;
+    --info-light: #DBE9F9;
+    --danger: #9B1C1C;
+    --danger-light: #FDE8E8;
+    --yellow: #92400E;
+    --yellow-light: #FEF3C7;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--accent-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 16px;
+  }
+
+  .logo-sub { font-size: 12px; color: var(--text3); font-family: 'DM Sans', sans-serif; margin-left: 42px; }
+
+  .sidebar-search {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+  }
+
+  .sidebar-search input:focus { border-color: var(--accent); }
+
+  .patients-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .patient-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.15s;
+    border-left: 3px solid transparent;
+  }
+
+  .patient-item:hover { background: var(--bg); }
+  .patient-item.active { background: var(--accent-light); border-left-color: var(--accent); }
+
+  .patient-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 13px; flex-shrink: 0;
+  }
+
+  .patient-info { flex: 1; min-width: 0; }
+  .patient-name { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .patient-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  .patient-imc-badge {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 7px; border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .sidebar-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-new {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .btn-new:hover { background: var(--accent-dark); }
+
+  /* MAIN CONTENT */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+
+  .topbar-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .topbar-left p { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+  .topbar-actions { display: flex; gap: 10px; }
+
+  .btn { 
+    padding: 8px 16px; border-radius: var(--radius-sm); font-family: inherit;
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    border: 1px solid var(--border2); background: var(--surface); color: var(--text);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+
+  .btn:hover { background: var(--bg); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+  .btn-danger { color: var(--danger); border-color: var(--danger-light); }
+  .btn-danger:hover { background: var(--danger-light); }
+
+  .content { padding: 28px 32px; flex: 1; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 60px 32px;
+    text-align: center;
+  }
+
+  .empty-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: var(--accent-light); display: flex; align-items: center;
+    justify-content: center; font-size: 32px; margin-bottom: 20px;
+  }
+
+  .empty-state h2 { font-family: 'DM Serif Display', serif; font-size: 24px; margin-bottom: 8px; }
+  .empty-state p { color: var(--text2); max-width: 320px; line-height: 1.6; }
+
+  /* FORM */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .form-grid.full { grid-template-columns: 1fr; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.span2 { grid-column: span 2; }
+  .form-group.span3 { grid-column: span 3; }
+
+  label {
+    font-size: 13px; font-weight: 500; color: var(--text2);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .unit-hint {
+    font-size: 11px; color: var(--text3); font-weight: 400; margin-left: 4px;
+  }
+
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: inherit; font-size: 14px;
+    color: var(--text); background: var(--surface);
+    outline: none; transition: border-color 0.15s;
+  }
+
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  input:disabled { background: var(--bg); color: var(--text3); }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* SECTION CARDS */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .section-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text3);
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* RESULTS GRID */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .metric-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .metric-label { font-size: 12px; color: var(--text3); margin-bottom: 6px; font-weight: 500; }
+  .metric-value { font-size: 26px; font-weight: 600; line-height: 1; }
+  .metric-unit { font-size: 13px; color: var(--text3); margin-top: 4px; }
+  .metric-status { font-size: 12px; font-weight: 600; margin-top: 8px; padding: 3px 10px; border-radius: 20px; display: inline-block; }
+
+  /* IMC COLOR SCALE */
+  .imc-bar {
+    height: 12px; border-radius: 6px;
+    background: linear-gradient(to right, #2563EB 0%, #16A34A 30%, #EAB308 55%, #EA580C 75%, #DC2626 100%);
+    position: relative; margin: 8px 0;
+  }
+
+  .imc-pointer {
+    position: absolute; top: -5px;
+    width: 4px; height: 22px;
+    background: var(--text);
+    border-radius: 2px;
+    transform: translateX(-50%);
+    transition: left 0.5s ease;
+  }
+
+  /* CLASSIFICATION TABLE */
+  .class-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+
+  .class-table th {
+    text-align: left; padding: 8px 12px;
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .class-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .class-table tr:last-child td { border-bottom: none; }
+  .class-table tr.current-row { background: var(--accent-light); }
+  .class-table tr.current-row td { font-weight: 600; }
+
+  /* HISTORY TABLE */
+  .history-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+
+  .history-table th {
+    text-align: left; padding: 10px 12px;
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text3);
+    background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+
+  .history-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .history-table tr:hover td { background: var(--bg); }
+  .history-table tr:last-child td { border-bottom: none; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,18,14,0.55);
+    z-index: 100; display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 28px;
+    width: 100%; max-width: 680px;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: var(--shadow-md);
+  }
+
+  .modal-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .modal-header h2 { font-family: 'DM Serif Display', serif; font-size: 22px; font-weight: 400; }
+  .modal-header p { font-size: 13px; color: var(--text3); margin-top: 4px; }
+
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--border); background: none;
+    cursor: pointer; font-size: 16px; color: var(--text2);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+
+  .modal-close:hover { background: var(--bg); }
+
+  .modal-footer { margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+
+  .tab {
+    padding: 10px 20px; border: none; background: none;
+    font-family: inherit; font-size: 14px; font-weight: 500;
+    color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: all 0.15s;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* STATUS BADGES */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .badge-normal { background: var(--accent-light); color: var(--accent-dark); }
+  .badge-bajo { background: var(--info-light); color: var(--info); }
+  .badge-sobrepeso { background: var(--yellow-light); color: var(--yellow); }
+  .badge-obesidad1 { background: var(--warn-light); color: var(--warn); }
+  .badge-obesidad2, .badge-obesidad3 { background: var(--danger-light); color: var(--danger); }
+
+  /* CHART */
+  .chart-wrap { height: 200px; position: relative; }
+
+  /* PRINT */
+  @media print {
+    .sidebar, .topbar, .topbar-actions, .btn, .tabs { display: none !important; }
+    .main { overflow: visible; }
+    .section-card { break-inside: avoid; }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  .info-row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .info-item { display: flex; flex-direction: column; gap: 2px; }
+  .info-item .lbl { font-size: 12px; color: var(--text3); }
+  .info-item .val { font-size: 15px; font-weight: 500; }
+
+  .no-history {
+    text-align: center; padding: 40px 20px;
+    color: var(--text3); font-size: 14px;
+  }
+
+  .recommendation-box {
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    font-size: 14px; line-height: 1.6;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">⚕</div>
+        NutriEval
+      </div>
+      <div class="logo-sub">Evaluación Nutricional</div>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" id="searchInput" placeholder="Buscar paciente..." oninput="filterPatients()">
+    </div>
+    <div class="patients-list" id="patientsList"></div>
+    <div class="sidebar-footer">
+      <button class="btn-new" onclick="openNewPatientModal()">
+        <span>＋</span> Nuevo Paciente
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" id="mainContent">
+    <!-- EMPTY STATE -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🥗</div>
+      <h2>Bienvenido a NutriEval</h2>
+      <p>Crea un nuevo paciente o selecciona uno existente para comenzar la evaluación nutricional.</p>
+      <br>
+      <button class="btn btn-primary" onclick="openNewPatientModal()">＋ Nuevo Paciente</button>
+    </div>
+
+    <!-- PATIENT VIEW -->
+    <div id="patientView" style="display:none; flex:1; flex-direction:column;">
+      <div class="topbar">
+        <div class="topbar-left">
+          <h1 id="topbarName">Paciente</h1>
+          <p id="topbarMeta"></p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="openNewEvalModal()">📊 Nueva Evaluación</button>
+          <button class="btn" onclick="editPatient()">✏️ Editar</button>
+          <button class="btn btn-danger" onclick="deletePatient()">🗑 Eliminar</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- TABS -->
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('resumen', this)">Resumen</button>
+          <button class="tab" onclick="switchTab('evaluaciones', this)">Evaluaciones</button>
+          <button class="tab" onclick="switchTab('historial', this)">Historial IMC</button>
+        </div>
+
+        <!-- TAB: RESUMEN -->
+        <div class="tab-panel active" id="tab-resumen">
+          <!-- INFO BÁSICA -->
+          <div class="section-card">
+            <div class="section-title">Datos del paciente</div>
+            <div class="info-row" id="patientInfoRow"></div>
+          </div>
+
+          <!-- ÚLTIMA EVALUACIÓN -->
+          <div id="lastEvalSection">
+            <div class="section-card">
+              <div class="section-title">Última evaluación</div>
+              <div class="results-grid" id="resultsGrid"></div>
+
+              <div style="margin-top: 12px;">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text3); margin-bottom:4px;">
+                  <span>Bajo peso</span><span>Normal</span><span>Sobrepeso</span><span>Obesidad</span>
+                </div>
+                <div class="imc-bar"><div class="imc-pointer" id="imcPointer"></div></div>
+              </div>
+
+              <div id="recommendationBox"></div>
+            </div>
+
+            <div class="section-card">
+              <div class="section-title">Clasificación IMC</div>
+              <table class="class-table" id="classTable">
+                <thead>
+                  <tr>
+                    <th>IMC (kg/m²)</th>
+                    <th>Clasificación</th>
+                    <th>Riesgo</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="noEvalYet" style="display:none;" class="no-history">
+            <p>🩺 No hay evaluaciones registradas aún.<br>Haz clic en <strong>Nueva Evaluación</strong> para comenzar.</p>
+          </div>
+        </div>
+
+        <!-- TAB: EVALUACIONES -->
+        <div class="tab-panel" id="tab-evaluaciones">
+          <div class="section-card">
+            <div class="section-title">Todas las evaluaciones</div>
+            <table class="history-table" id="evalTable">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Peso (kg)</th>
+                  <th>Talla (cm)</th>
+                  <th>IMC</th>
+                  <th>Clasificación</th>
+                  <th>% Grasa</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="evalTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB: HISTORIAL IMC -->
+        <div class="tab-panel" id="tab-historial">
+          <div class="section-card">
+            <div class="section-title">Evolución del IMC</div>
+            <div class="chart-wrap" id="chartWrap">
+              <canvas id="imcChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL NUEVO/EDITAR PACIENTE -->
+<div class="modal-overlay" id="patientModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2 id="patientModalTitle">Nuevo Paciente</h2>
+        <p>Ingresa los datos generales del paciente</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('patientModal')">✕</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre completo</label>
+        <input type="text" id="pNombre" placeholder="Ej. María García López">
+      </div>
+      <div class="form-group">
+        <label>Fecha de nacimiento</label>
+        <input type="date" id="pFechaNac">
+      </div>
+      <div class="form-group">
+        <label>Sexo biológico</label>
+        <select id="pSexo">
+          <option value="">Seleccionar...</option>
+          <option value="M">Masculino</option>
+          <option value="F">Femenino</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Código / Expediente</label>
+        <input type="text" id="pCodigo" placeholder="Opcional">
+      </div>
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input type="text" id="pTelefono" placeholder="Opcional">
+      </div>
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="text" id="pCorreo" placeholder="Opcional">
+      </div>
+      <div class="form-group span2">
+        <label>Diagnóstico / Observaciones generales</label>
+        <textarea id="pObservaciones" placeholder="Condiciones médicas, alergias, etc."></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('patientModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePatient()">Guardar Paciente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA EVALUACIÓN -->
+<div class="modal-overlay" id="evalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Nueva Evaluación Nutricional</h2>
+        <p id="evalModalSub">Ingresa las medidas antropométricas</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('evalModal')">✕</button>
+    </div>
+
+    <div class="section-title" style="margin-bottom:16px;">Medidas básicas</div>
+    <div class="form-grid three">
+      <div class="form-group">
+        <label>Fecha de evaluación</label>
+        <input type="date" id="eFecha">
+      </div>
+      <div class="form-group">
+        <label>Peso <span class="unit-hint">kg</span></label>
+        <input type="number" id="ePeso" step="0.1" min="1" max="300" placeholder="Ej. 70.5" oninput="calcLive()">
+      </div>
+      <div class="form-group">
+        <label>Talla <span class="unit-hint">cm</span></label>
+        <input type="number" id="eTalla" step="0.1" min="40" max="250" placeholder="Ej. 165" oninput="calcLive()">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title" style="margin-bottom:16px;">Circunferencias corporales</div>
+    <div class="form-grid three">
+      <div class="form-group">
+        <label>Cintura <span class="unit-hint">cm</span></label>
+        <input type="number" id="eCintura" step="0.1" placeholder="Ej. 80" oninput="calcLive()">
+      </div>
+      <div class="form-group">
+        <label>Cadera <span class="unit-hint">cm</span></label>
+        <input type="number" id="eCadera" step="0.1" placeholder="Ej. 96" oninput="calcLive()">
+      </div>
+      <div class="form-group">
+        <label>Cuello <span class="unit-hint">cm</span></label>
+        <input type="number" id="eCuello" step="0.1" placeholder="Ej. 37" oninput="calcLive()">
+      </div>
+      <div class="form-group">
+        <label>Brazo <span class="unit-hint">cm</span></label>
+        <input type="number" id="eBrazo" step="0.1" placeholder="Ej. 28">
+      </div>
+      <div class="form-group">
+        <label>Muslo <span class="unit-hint">cm</span></label>
+        <input type="number" id="eMuslo" step="0.1" placeholder="Ej. 52">
+      </div>
+      <div class="form-group">
+        <label>Pantorrilla <span class="unit-hint">cm</span></label>
+        <input type="number" id="ePantorrilla" step="0.1" placeholder="Ej. 35">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title" style="margin-bottom:16px;">Pliegues cutáneos <span style="font-size:11px; font-weight:400; text-transform:none; letter-spacing:0;">(mm — opcional)</span></div>
+    <div class="form-grid three">
+      <div class="form-group">
+        <label>Tricipital</label>
+        <input type="number" id="eTrici" step="0.1" placeholder="mm">
+      </div>
+      <div class="form-group">
+        <label>Bicipital</label>
+        <input type="number" id="eBici" step="0.1" placeholder="mm">
+      </div>
+      <div class="form-group">
+        <label>Subescapular</label>
+        <input type="number" id="eSubesc" step="0.1" placeholder="mm">
+      </div>
+      <div class="form-group">
+        <label>Suprailiaco</label>
+        <input type="number" id="eSuprail" step="0.1" placeholder="mm">
+      </div>
+      <div class="form-group">
+        <label>Abdominal</label>
+        <input type="number" id="eAbdom" step="0.1" placeholder="mm">
+      </div>
+      <div class="form-group">
+        <label>Muslo (pliegue)</label>
+        <input type="number" id="eMusloP" step="0.1" placeholder="mm">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title" style="margin-bottom:16px;">Signos vitales / otros</div>
+    <div class="form-grid three">
+      <div class="form-group">
+        <label>Presión arterial</label>
+        <input type="text" id="ePresion" placeholder="Ej. 120/80">
+      </div>
+      <div class="form-group">
+        <label>Glucosa <span class="unit-hint">mg/dL</span></label>
+        <input type="number" id="eGlucosa" placeholder="Ej. 95">
+      </div>
+      <div class="form-group">
+        <label>Nivel actividad física</label>
+        <select id="eActividad">
+          <option value="1.2">Sedentario</option>
+          <option value="1.375">Ligero (1-3 días/sem)</option>
+          <option value="1.55" selected>Moderado (3-5 días/sem)</option>
+          <option value="1.725">Activo (6-7 días/sem)</option>
+          <option value="1.9">Muy activo (2x/día)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- PREVIEW EN VIVO -->
+    <div id="livePreview" style="display:none; margin-top:20px; padding:16px; background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border);">
+      <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text3); margin-bottom:12px;">Resultados calculados</div>
+      <div style="display:flex; flex-wrap:wrap; gap:20px;" id="livePreviewContent"></div>
+    </div>
+
+    <div class="form-group" style="margin-top:16px;">
+      <label>Notas clínicas</label>
+      <textarea id="eNotas" placeholder="Observaciones de la evaluación..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('evalModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEvaluation()">Guardar Evaluación</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ============================================================
+//  DATA LAYER — localStorage
+// ============================================================
+let DB = { patients: [], evaluations: [] };
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem('nutrieval_db');
+    if (raw) DB = JSON.parse(raw);
+  } catch(e) {}
+}
+
+function saveDB() {
+  localStorage.setItem('nutrieval_db', JSON.stringify(DB));
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+// ============================================================
+//  PATIENT CRUD
+// ============================================================
+let currentPatientId = null;
+let editingPatientId = null;
+
+function calcAge(fechaNac) {
+  if (!fechaNac) return null;
+  const today = new Date();
+  const dob = new Date(fechaNac);
+  let age = today.getFullYear() - dob.getFullYear();
+  if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+
+function getInitials(name) {
+  return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+}
+
+const AVATAR_COLORS = ['#2D6A4F','#1D4E89','#7B2D8B','#B5451B','#92400E','#065F46'];
+function avatarColor(id) { return AVATAR_COLORS[id.charCodeAt(0) % AVATAR_COLORS.length]; }
+
+function renderSidebar() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const list = document.getElementById('patientsList');
+  const filtered = DB.patients.filter(p => p.nombre.toLowerCase().includes(search));
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="padding:20px; text-align:center; color:var(--text3); font-size:13px;">Sin resultados</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => {
+    const evals = DB.evaluations.filter(e => e.patientId === p.id);
+    const last = evals.sort((a,b) => new Date(b.fecha) - new Date(a.fecha))[0];
+    let badge = '';
+    if (last) {
+      const cl = classifyIMC(last.imc);
+      badge = `<span class="patient-imc-badge badge-${cl.cls}" style="background:${cl.bgHex};color:${cl.fgHex};">${last.imc.toFixed(1)}</span>`;
+    }
+    const active = p.id === currentPatientId ? ' active' : '';
+    const age = calcAge(p.fechaNac);
+    return `
+      <div class="patient-item${active}" onclick="selectPatient('${p.id}')">
+        <div class="patient-avatar" style="background:${avatarColor(p.id)}; color:white;">${getInitials(p.nombre)}</div>
+        <div class="patient-info">
+          <div class="patient-name">${p.nombre}</div>
+          <div class="patient-meta">${age !== null ? age + ' años · ' : ''}${p.sexo === 'M' ? 'Masculino' : p.sexo === 'F' ? 'Femenino' : ''}</div>
+        </div>
+        ${badge}
+      </div>`;
+  }).join('');
+}
+
+function filterPatients() { renderSidebar(); }
+
+function openNewPatientModal() {
+  editingPatientId = null;
+  document.getElementById('patientModalTitle').textContent = 'Nuevo Paciente';
+  ['pNombre','pCodigo','pTelefono','pCorreo','pObservaciones'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pFechaNac').value = '';
+  document.getElementById('pSexo').value = '';
+  openModal('patientModal');
+}
+
+function editPatient() {
+  if (!currentPatientId) return;
+  const p = DB.patients.find(x => x.id === currentPatientId);
+  editingPatientId = p.id;
+  document.getElementById('patientModalTitle').textContent = 'Editar Paciente';
+  document.getElementById('pNombre').value = p.nombre;
+  document.getElementById('pFechaNac').value = p.fechaNac || '';
+  document.getElementById('pSexo').value = p.sexo || '';
+  document.getElementById('pCodigo').value = p.codigo || '';
+  document.getElementById('pTelefono').value = p.telefono || '';
+  document.getElementById('pCorreo').value = p.correo || '';
+  document.getElementById('pObservaciones').value = p.observaciones || '';
+  openModal('patientModal');
+}
+
+function savePatient() {
+  const nombre = document.getElementById('pNombre').value.trim();
+  if (!nombre) { alert('El nombre es obligatorio.'); return; }
+
+  if (editingPatientId) {
+    const p = DB.patients.find(x => x.id === editingPatientId);
+    p.nombre = nombre;
+    p.fechaNac = document.getElementById('pFechaNac').value;
+    p.sexo = document.getElementById('pSexo').value;
+    p.codigo = document.getElementById('pCodigo').value;
+    p.telefono = document.getElementById('pTelefono').value;
+    p.correo = document.getElementById('pCorreo').value;
+    p.observaciones = document.getElementById('pObservaciones').value;
+  } else {
+    const p = {
+      id: genId(),
+      nombre, fechaNac: document.getElementById('pFechaNac').value,
+      sexo: document.getElementById('pSexo').value,
+      codigo: document.getElementById('pCodigo').value,
+      telefono: document.getElementById('pTelefono').value,
+      correo: document.getElementById('pCorreo').value,
+      observaciones: document.getElementById('pObservaciones').value,
+      creado: new Date().toISOString()
+    };
+    DB.patients.push(p);
+    currentPatientId = p.id;
+  }
+
+  saveDB();
+  closeModal('patientModal');
+  renderSidebar();
+  if (currentPatientId) renderPatientView(currentPatientId);
+}
+
+function deletePatient() {
+  if (!currentPatientId) return;
+  const p = DB.patients.find(x => x.id === currentPatientId);
+  if (!confirm(`¿Eliminar a ${p.nombre} y todas sus evaluaciones?`)) return;
+  DB.patients = DB.patients.filter(x => x.id !== currentPatientId);
+  DB.evaluations = DB.evaluations.filter(x => x.patientId !== currentPatientId);
+  saveDB();
+  currentPatientId = null;
+  document.getElementById('patientView').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'flex';
+  renderSidebar();
+}
+
+function selectPatient(id) {
+  currentPatientId = id;
+  renderSidebar();
+  renderPatientView(id);
+}
+
+// ============================================================
+//  NUTRITION CALCULATIONS
+// ============================================================
+function calcIMC(peso, talla) {
+  const t = talla / 100;
+  return peso / (t * t);
+}
+
+// Harris-Benedict
+function calcTMB(sexo, peso, talla, edad) {
+  if (sexo === 'M') return 88.362 + 13.397 * peso + 4.799 * talla - 5.677 * edad;
+  return 447.593 + 9.247 * peso + 3.098 * talla - 4.330 * edad;
+}
+
+// Fórmula de la Marina de EE.UU. para % grasa
+function calcPctGrasaUSNavy(sexo, talla, cintura, cuello, cadera) {
+  if (!talla || !cintura || !cuello) return null;
+  talla = parseFloat(talla); cintura = parseFloat(cintura);
+  cuello = parseFloat(cuello); cadera = parseFloat(cadera);
+  let g;
+  if (sexo === 'M') {
+    g = 495 / (1.0324 - 0.19077 * Math.log10(cintura - cuello) + 0.15456 * Math.log10(talla)) - 450;
+  } else {
+    if (!cadera) return null;
+    g = 495 / (1.29579 - 0.35004 * Math.log10(cintura + cadera - cuello) + 0.22100 * Math.log10(talla)) - 450;
+  }
+  return g < 0 || g > 80 ? null : g;
+}
+
+// Deurenberg % grasa por IMC
+function calcPctGrasaDeurenberg(imc, edad, sexo) {
+  const s = sexo === 'M' ? 1 : 0;
+  return 1.20 * imc + 0.23 * edad - 10.8 * s - 5.4;
+}
+
+// Peso ideal Lorentz
+function calcPesoIdeal(sexo, talla) {
+  if (sexo === 'M') return talla - 100 - (talla - 150) / 4;
+  return talla - 100 - (talla - 150) / 2.5;
+}
+
+// Índice Cintura/Cadera
+function calcICC(cintura, cadera) {
+  if (!cintura || !cadera) return null;
+  return parseFloat(cintura) / parseFloat(cadera);
+}
+
+// Índice Cintura/Talla
+function calcICT(cintura, talla) {
+  if (!cintura || !talla) return null;
+  return parseFloat(cintura) / parseFloat(talla);
+}
+
+const IMC_RANGES = [
+  { min: 0,    max: 16,   label: 'Desnutrición severa', risk: 'Muy alto', cls: 'bajo' },
+  { min: 16,   max: 17,   label: 'Desnutrición moderada', risk: 'Alto', cls: 'bajo' },
+  { min: 17,   max: 18.5, label: 'Desnutrición leve / Bajo peso', risk: 'Moderado', cls: 'bajo' },
+  { min: 18.5, max: 25,   label: 'Peso normal', risk: 'Normal', cls: 'normal' },
+  { min: 25,   max: 30,   label: 'Sobrepeso', risk: 'Aumentado', cls: 'sobrepeso' },
+  { min: 30,   max: 35,   label: 'Obesidad grado I', risk: 'Alto', cls: 'obesidad1' },
+  { min: 35,   max: 40,   label: 'Obesidad grado II', risk: 'Muy alto', cls: 'obesidad2' },
+  { min: 40,   max: 999,  label: 'Obesidad grado III (mórbida)', risk: 'Extremo', cls: 'obesidad3' },
+];
+
+const CLS_COLORS = {
+  bajo:      { bgHex: '#DBE9F9', fgHex: '#1D4E89' },
+  normal:    { bgHex: '#D8EDDF', fgHex: '#1B4332' },
+  sobrepeso: { bgHex: '#FEF3C7', fgHex: '#92400E' },
+  obesidad1: { bgHex: '#FDEBD8', fgHex: '#B5451B' },
+  obesidad2: { bgHex: '#FDE8E8', fgHex: '#9B1C1C' },
+  obesidad3: { bgHex: '#FDE8E8', fgHex: '#9B1C1C' },
+};
+
+function classifyIMC(imc) {
+  const r = IMC_RANGES.find(r => imc >= r.min && imc < r.max) || IMC_RANGES[IMC_RANGES.length - 1];
+  return { ...r, ...CLS_COLORS[r.cls] };
+}
+
+function imcBarPercent(imc) {
+  const clamp = Math.min(Math.max(imc, 14), 46);
+  return ((clamp - 14) / (46 - 14)) * 100;
+}
+
+// ============================================================
+//  LIVE PREVIEW IN MODAL
+// ============================================================
+function calcLive() {
+  const peso = parseFloat(document.getElementById('ePeso').value);
+  const talla = parseFloat(document.getElementById('eTalla').value);
+  const preview = document.getElementById('livePreview');
+  const content = document.getElementById('livePreviewContent');
+
+  if (!peso || !talla || peso < 1 || talla < 40) { preview.style.display = 'none'; return; }
+
+  const imc = calcIMC(peso, talla);
+  const cl = classifyIMC(imc);
+
+  const p = DB.patients.find(x => x.id === currentPatientId);
+  const age = p ? calcAge(p.fechaNac) : null;
+  const sexo = p ? p.sexo : null;
+
+  let extras = '';
+
+  if (age && sexo) {
+    const pi = calcPesoIdeal(sexo, talla);
+    const tmb = calcTMB(sexo, peso, talla, age);
+    extras += liveItem('Peso ideal', pi.toFixed(1), 'kg');
+    extras += liveItem('TMB', Math.round(tmb), 'kcal');
+  }
+
+  const cintura = document.getElementById('eCintura').value;
+  const cadera = document.getElementById('eCadera').value;
+  const cuello = document.getElementById('eCuello').value;
+
+  if (cintura && cadera) {
+    const icc = calcICC(cintura, cadera);
+    extras += liveItem('ICC', icc.toFixed(2), '');
+  }
+
+  if (cintura && talla) {
+    const ict = calcICT(cintura, talla * 10);
+    extras += liveItem('ICT', ict.toFixed(2), '');
+  }
+
+  content.innerHTML = `
+    ${liveItem('IMC', imc.toFixed(1), 'kg/m²', cl.label, cl.bgHex, cl.fgHex)}
+    ${extras}
+  `;
+
+  preview.style.display = 'block';
+}
+
+function liveItem(label, val, unit, status, bgHex, fgHex) {
+  return `<div>
+    <div style="font-size:12px;color:var(--text3);">${label}</div>
+    <div style="font-size:20px;font-weight:600;">${val} <span style="font-size:13px;font-weight:400;color:var(--text3);">${unit}</span></div>
+    ${status ? `<div style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;display:inline-block;background:${bgHex};color:${fgHex};">${status}</div>` : ''}
+  </div>`;
+}
+
+// ============================================================
+//  EVALUATION CRUD
+// ============================================================
+function openNewEvalModal() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('eFecha').value = today;
+  ['ePeso','eTalla','eCintura','eCadera','eCuello','eBrazo','eMuslo','ePantorrilla',
+   'eTrici','eBici','eSubesc','eSuprail','eAbdom','eMusloP','eGlucosa','ePresion','eNotas'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('eActividad').value = '1.55';
+  document.getElementById('livePreview').style.display = 'none';
+  openModal('evalModal');
+}
+
+function saveEvaluation() {
+  const peso = parseFloat(document.getElementById('ePeso').value);
+  const talla = parseFloat(document.getElementById('eTalla').value);
+  const fecha = document.getElementById('eFecha').value;
+
+  if (!peso || !talla || !fecha) { alert('Peso, talla y fecha son obligatorios.'); return; }
+
+  const p = DB.patients.find(x => x.id === currentPatientId);
+  const age = calcAge(p.fechaNac);
+  const sexo = p.sexo;
+  const imc = calcIMC(peso, talla);
+
+  const cintura = document.getElementById('eCintura').value;
+  const cadera = document.getElementById('eCadera').value;
+  const cuello = document.getElementById('eCuello').value;
+
+  const pctGrasaNav = calcPctGrasaUSNavy(sexo, talla, cintura, cuello, cadera);
+  const pctGrasaDeur = age ? calcPctGrasaDeurenberg(imc, age, sexo) : null;
+
+  let tmb = null, get = null, piLorentz = null;
+  if (age && sexo) {
+    tmb = calcTMB(sexo, peso, talla, age);
+    get = tmb * parseFloat(document.getElementById('eActividad').value);
+    piLorentz = calcPesoIdeal(sexo, talla);
+  }
+
+  // Pliegues
+  const pliegues = {
+    tricipital: document.getElementById('eTrici').value,
+    bicipital: document.getElementById('eBici').value,
+    subescapular: document.getElementById('eSubesc').value,
+    suprailiaco: document.getElementById('eSuprail').value,
+    abdominal: document.getElementById('eAbdom').value,
+    muslo: document.getElementById('eMusloP').value,
+  };
+
+  const sumPliegues4 = ['tricipital','bicipital','subescapular','suprailiaco'].map(k => parseFloat(pliegues[k]) || 0).reduce((a,b) => a+b, 0);
+
+  // % grasa Durnin-Womersley (4 pliegues)
+  let pctGrasaDW = null;
+  if (sumPliegues4 > 0 && age && sexo) {
+    const logSum = Math.log10(sumPliegues4);
+    let D;
+    if (sexo === 'M') {
+      if (age < 30) D = 1.1620 - 0.0630 * logSum;
+      else if (age < 40) D = 1.1631 - 0.0632 * logSum;
+      else if (age < 50) D = 1.1422 - 0.0544 * logSum;
+      else D = 1.1620 - 0.0700 * logSum;
+    } else {
+      if (age < 30) D = 1.1549 - 0.0678 * logSum;
+      else if (age < 40) D = 1.1599 - 0.0717 * logSum;
+      else if (age < 50) D = 1.1423 - 0.0632 * logSum;
+      else D = 1.1333 - 0.0612 * logSum;
+    }
+    pctGrasaDW = ((4.95 / D) - 4.50) * 100;
+  }
+
+  const eval_ = {
+    id: genId(),
+    patientId: currentPatientId,
+    fecha,
+    peso, talla, imc,
+    cintura: cintura || null,
+    cadera: cadera || null,
+    cuello: cuello || null,
+    brazo: document.getElementById('eBrazo').value || null,
+    muslo: document.getElementById('eMuslo').value || null,
+    pantorrilla: document.getElementById('ePantorrilla').value || null,
+    pliegues,
+    icc: calcICC(cintura, cadera),
+    ict: calcICT(cintura, talla * 10),
+    pctGrasaNav,
+    pctGrasaDeur,
+    pctGrasaDW,
+    tmb, get,
+    pesoIdeal: piLorentz,
+    presion: document.getElementById('ePresion').value,
+    glucosa: document.getElementById('eGlucosa').value,
+    notas: document.getElementById('eNotas').value,
+    actividad: document.getElementById('eActividad').value,
+    creado: new Date().toISOString()
+  };
+
+  DB.evaluations.push(eval_);
+  saveDB();
+  closeModal('evalModal');
+  renderPatientView(currentPatientId);
+  renderSidebar();
+}
+
+function deleteEval(id) {
+  if (!confirm('¿Eliminar esta evaluación?')) return;
+  DB.evaluations = DB.evaluations.filter(e => e.id !== id);
+  saveDB();
+  renderPatientView(currentPatientId);
+  renderSidebar();
+}
+
+// ============================================================
+//  RENDER PATIENT VIEW
+// ============================================================
+let imcChartInstance = null;
+
+function renderPatientView(id) {
+  const p = DB.patients.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('emptyState').style.display = 'none';
+  const pv = document.getElementById('patientView');
+  pv.style.display = 'flex';
+
+  const age = calcAge(p.fechaNac);
+
+  document.getElementById('topbarName').textContent = p.nombre;
+  document.getElementById('topbarMeta').textContent = [
+    p.codigo ? `Exp. ${p.codigo}` : null,
+    age !== null ? `${age} años` : null,
+    p.sexo === 'M' ? 'Masculino' : p.sexo === 'F' ? 'Femenino' : null,
+  ].filter(Boolean).join(' · ');
+
+  // Info row
+  document.getElementById('patientInfoRow').innerHTML = [
+    { lbl: 'Nombre', val: p.nombre },
+    p.fechaNac ? { lbl: 'Fecha nac.', val: p.fechaNac } : null,
+    age !== null ? { lbl: 'Edad', val: age + ' años' } : null,
+    p.sexo ? { lbl: 'Sexo', val: p.sexo === 'M' ? 'Masculino' : 'Femenino' } : null,
+    p.codigo ? { lbl: 'Expediente', val: p.codigo } : null,
+    p.telefono ? { lbl: 'Teléfono', val: p.telefono } : null,
+    p.correo ? { lbl: 'Correo', val: p.correo } : null,
+  ].filter(Boolean).map(x => `
+    <div class="info-item">
+      <span class="lbl">${x.lbl}</span>
+      <span class="val">${x.val}</span>
+    </div>`).join('');
+
+  // Evaluaciones
+  const evals = DB.evaluations.filter(e => e.patientId === id).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+  const last = evals[0] || null;
+
+  if (!last) {
+    document.getElementById('lastEvalSection').style.display = 'none';
+    document.getElementById('noEvalYet').style.display = 'block';
+  } else {
+    document.getElementById('lastEvalSection').style.display = 'block';
+    document.getElementById('noEvalYet').style.display = 'none';
+    renderResults(last, p);
+  }
+
+  // Eval table
+  const tbody = document.getElementById('evalTableBody');
+  if (evals.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="no-history">Sin evaluaciones registradas</td></tr>`;
+  } else {
+    tbody.innerHTML = evals.map(e => {
+      const cl = classifyIMC(e.imc);
+      const grasaDisp = e.pctGrasaDW || e.pctGrasaNav || e.pctGrasaDeur;
+      return `<tr>
+        <td>${e.fecha}</td>
+        <td>${e.peso}</td>
+        <td>${e.talla}</td>
+        <td style="font-weight:600;">${e.imc.toFixed(1)}</td>
+        <td><span class="badge" style="background:${cl.bgHex};color:${cl.fgHex};">${cl.label}</span></td>
+        <td>${grasaDisp ? grasaDisp.toFixed(1) + '%' : '—'}</td>
+        <td><button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="deleteEval('${e.id}')">Eliminar</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Chart
+  renderChart(evals);
+}
+
+function renderResults(ev, p) {
+  const cl = classifyIMC(ev.imc);
+  const age = calcAge(p.fechaNac);
+  const grasaDisp = ev.pctGrasaDW || ev.pctGrasaNav || ev.pctGrasaDeur;
+
+  const metrics = [
+    { label: 'IMC', value: ev.imc.toFixed(1), unit: 'kg/m²', status: cl.label, bgHex: cl.bgHex, fgHex: cl.fgHex },
+    { label: 'Peso', value: ev.peso, unit: 'kg' },
+    { label: 'Talla', value: ev.talla, unit: 'cm' },
+    ev.pesoIdeal ? { label: 'Peso ideal', value: ev.pesoIdeal.toFixed(1), unit: 'kg' } : null,
+    ev.tmb ? { label: 'TMB', value: Math.round(ev.tmb), unit: 'kcal/día' } : null,
+    ev.get ? { label: 'GET', value: Math.round(ev.get), unit: 'kcal/día' } : null,
+    grasaDisp ? { label: '% Grasa corporal', value: grasaDisp.toFixed(1), unit: '%' } : null,
+    ev.icc ? { label: 'Índice C/C', value: ev.icc.toFixed(2), unit: '' } : null,
+    ev.ict ? { label: 'Índice C/T', value: ev.ict.toFixed(2), unit: '' } : null,
+  ].filter(Boolean);
+
+  document.getElementById('resultsGrid').innerHTML = metrics.map(m => `
+    <div class="metric-card">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value">${m.value}</div>
+      <div class="metric-unit">${m.unit}</div>
+      ${m.status ? `<div class="metric-status" style="background:${m.bgHex};color:${m.fgHex};">${m.status}</div>` : ''}
+    </div>`).join('');
+
+  // IMC bar pointer
+  document.getElementById('imcPointer').style.left = imcBarPercent(ev.imc) + '%';
+
+  // Classification table
+  const tbody = document.querySelector('#classTable tbody');
+  tbody.innerHTML = IMC_RANGES.map(r => {
+    const isCurrent = ev.imc >= r.min && ev.imc < r.max;
+    const cols = CLS_COLORS[r.cls];
+    return `<tr class="${isCurrent ? 'current-row' : ''}">
+      <td>${r.min} – ${r.max === 999 ? '≥40' : r.max}</td>
+      <td>
+        ${isCurrent ? `<span class="badge" style="background:${cols.bgHex};color:${cols.fgHex};">${r.label}</span>` : r.label}
+      </td>
+      <td>${r.risk}</td>
+    </tr>`;
+  }).join('');
+
+  // Recommendations
+  const recBox = document.getElementById('recommendationBox');
+  let rec = '';
+  let recBg = 'var(--accent-light)';
+  let recColor = 'var(--accent-dark)';
+
+  if (ev.imc < 18.5) {
+    recBg = 'var(--info-light)'; recColor = 'var(--info)';
+    rec = '⚠️ El paciente presenta bajo peso. Se recomienda evaluación de ingesta alimentaria, posibles causas subyacentes y plan de alimentación hipercalórico supervisado.';
+  } else if (ev.imc < 25) {
+    rec = '✅ El paciente se encuentra en rango de peso normal. Se recomienda mantener hábitos de alimentación saludable y actividad física regular.';
+  } else if (ev.imc < 30) {
+    recBg = 'var(--yellow-light)'; recColor = 'var(--yellow)';
+    rec = '📋 El paciente presenta sobrepeso. Se recomienda control de ingesta calórica, incremento de actividad física y seguimiento periódico.';
+  } else if (ev.imc < 35) {
+    recBg = 'var(--warn-light)'; recColor = 'var(--warn)';
+    rec = '⚠️ Obesidad grado I. Se recomienda intervención nutricional estructurada con metas de reducción de peso gradual (0.5–1 kg/semana).';
+  } else {
+    recBg = 'var(--danger-light)'; recColor = 'var(--danger)';
+    rec = '🚨 Obesidad grado II/III. Se recomienda evaluación médica completa, intervención nutricional intensiva y posiblemente valoración multidisciplinaria.';
+  }
+
+  if (ev.icc) {
+    const riesgoICC = (p.sexo === 'M' && ev.icc > 1.0) || (p.sexo === 'F' && ev.icc > 0.85);
+    if (riesgoICC) rec += `<br><br>⚠️ <strong>ICC elevado</strong> (${ev.icc.toFixed(2)}): indica distribución de grasa abdominal con mayor riesgo cardiovascular.`;
+  }
+
+  recBox.innerHTML = `<div class="recommendation-box" style="background:${recBg};color:${recColor};">${rec}</div>`;
+}
+
+// ============================================================
+//  CHART
+// ============================================================
+function renderChart(evals) {
+  const sorted = [...evals].sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+  const labels = sorted.map(e => e.fecha);
+  const data = sorted.map(e => parseFloat(e.imc.toFixed(1)));
+
+  const ctx = document.getElementById('imcChart').getContext('2d');
+  if (imcChartInstance) imcChartInstance.destroy();
+
+  if (data.length === 0) {
+    document.getElementById('chartWrap').innerHTML = '<div class="no-history">Sin datos para graficar</div>';
+    return;
+  }
+
+  if (data.length === 1) {
+    document.getElementById('chartWrap').innerHTML = '<div class="no-history">Agrega más evaluaciones para ver la evolución</div>';
+    return;
+  }
+
+  imcChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'IMC',
+        data,
+        borderColor: '#2D6A4F',
+        backgroundColor: 'rgba(45,106,79,0.08)',
+        borderWidth: 2,
+        pointBackgroundColor: data.map(v => v >= 30 ? '#DC2626' : v >= 25 ? '#EAB308' : v < 18.5 ? '#2563EB' : '#2D6A4F'),
+        pointRadius: 5,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        annotation: {}
+      },
+      scales: {
+        y: {
+          min: Math.max(0, Math.min(...data) - 3),
+          max: Math.max(...data) + 3,
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: { font: { size: 11 } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+
+  if (id === 'historial') {
+    const evals = DB.evaluations.filter(e => e.patientId === currentPatientId).sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+    renderChart(evals);
+  }
+}
+
+// ============================================================
+//  MODAL HELPERS
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ============================================================
+//  INIT
+// ============================================================
+loadDB();
+renderSidebar();
+
+// Auto-select first patient if exists
+if (DB.patients.length > 0) {
+  currentPatientId = DB.patients[0].id;
+  renderSidebar();
+  renderPatientView(DB.patients[0].id);
+}
+</script>
+</body>
+</html>
